@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=image" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>Gerador de Arte ASCII</title>
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      background-color: #0D1B2A;
+      color: #E0E1DD;
+    }
+    
+    .container {
+      display: flex;
+      flex-direction: column;
+      justify-items: center;
+      align-items: center;
+      gap: 15px;
+      background-color: #1B263B;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(119, 141, 169, 0.1);
+      max-width: 23rem;
+    }
+    
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+    }
+    
+    input[type="file"],
+    select,
+    input[type="range"] {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    
+    select {
+      appearance: none;
+      border: 0;
+      box-shadow: none;
+      flex: 1;
+      padding: 0 1em;
+      color: #E0E1DD;
+      background-color: #415A77;
+      cursor: pointer;
+    }
+    
+    .select {
+      position: relative;
+      display: flex;
+      width: 20em;
+      height: 3em;
+      border-radius: .25em;
+      overflow: hidden;
+    }
+    
+    .select::after {
+      content: '\25BC';
+      position: absolute;
+      top: 0;
+      right: 0;
+      padding: 1em;
+      background-color: #34495e;
+      transition: .25s all ease;
+      pointer-events: none;
+    }
+    
+    .select:hover::after {
+      color: #f39c12;
+    }
+    
+    label {
+      font-weight: bold;
+    }
+    
+    .file {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .file>input[type='file'] {
+      opacity: 0;
+      position: absolute;
+      inset: 0;
+    }
+    
+    .file>label {
+      font-size: .6rem;
+      font-weight: 300;
+      cursor: pointer;
+      border-radius: 4px;
+      background-color: #415A77;
+      color: #E0E1DD;
+      width: 100%;
+      padding-block: .5rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    button {
+      padding-block: .8rem;
+      width: 100%;
+      border: none;
+      border-radius: 4px;
+      background-color: #415A77;
+      color: white;
+      cursor: pointer;
+    }
+    
+    #image-preview {
+      max-width: 100%;
+      height: auto;
+      margin-bottom: 10px;
+      border-radius: 4px;
+    }
+    
+    #ascii-image-container {
+      margin-top: 15px;
+      width: 100%;
+    }
+    
+    #ascii-output-image {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 4px;
+    }
+    
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+    
+    .row {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .row span {
+      width: 2.5rem;
+      text-align: right;
+    }
+    
+    .controls-bottom {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      width: 100%;
+      justify-content: center;
+    }
+    
+    #loading-modal {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 1.2rem;
+      z-index: 999;
+    }
+    
+    #loading-modal .spinner {
+      border: 6px solid #ccc;
+      border-top: 6px solid #415A77;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 10px;
+    }
+    
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+    
+    .mode-switch {
+      display: flex;
+      width: 100%;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    #ascii-video-canvas {
+      border-radius: 4px;
+      width: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Gerador de Arte ASCII</h1>
+    
+    <div class="mode-switch">
+      <button id="mode-image">Imagem</button>
+      <button id="mode-video">Vídeo</button>
+    </div>
+    
+    <!-- Seção de IMAGEM -->
+    <section id="section-image">
+      <div class="controls">
+        <div class='file'>
+          <label for='input-file'>
+            <i class="material-symbols-outlined">image</i>Selecionar foto
+          </label>
+          <input type="file" id="image-upload" accept="image/*" />
+        </div>
+        <div class="row">
+          <label for="resolution">Resolução:</label>
+          <div class="select">
+            <select id="resolution">
+              <option value="192">1080p</option>
+              <option value="256">1440p</option>
+              <option value="384">4K</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <label for="gamma">Gama:</label>
+          <input type="range" id="gamma" min="0.1" max="3" step="0.1" value="0.5">
+          <span id="gamma-val">0.5</span>
+        </div>
+        <div class="row">
+          <label for="contrast">Contraste:</label>
+          <input type="range" id="contrast" min="0.1" max="3" step="0.1" value="1">
+          <span id="contrast-val">1</span>
+        </div>
+        <div class="row">
+          <label for="brightness">Brilho:</label>
+          <input type="range" id="brightness" min="0.1" max="3" step="0.01" value="1">
+          <span id="brightness-val">1</span>
+        </div>
+        <button id="generate-button" disabled>Gerar Arte ASCII</button>
+      </div>
+      <img id="image-preview" style="display: none;">
+      <div id="ascii-image-container" style="display: none;">
+        <img id="ascii-output-image" />
+        <a id="download-ascii-image-link" download="ascii_art.png">
+          <button id="download-ascii-image-button" disabled>Baixar Imagem</button>
+        </a>
+      </div>
+      <div class="controls-bottom">
+        <button id="copy-button" disabled>Copiar Texto</button>
+      </div>
+    </section>
+    
+    <!-- Seção de VÍDEO -->
+    <section id="section-video" class="hidden">
+      <button id="start-webcam">Iniciar Webcam</button>
+      <canvas id="ascii-video-canvas"></canvas>
+    </section>
+  </div>
+  
+  <div id="loading-modal">
+    <div style="display:flex; flex-direction:column; align-items:center;">
+      <div class="spinner"></div>
+      <div>Convertendo imagem para arte ASCII...</div>
+    </div>
+  </div>
+  
+  <script>
+    const imageUpload = document.getElementById("image-upload");
+    const generateButton = document.getElementById("generate-button");
+    const imagePreview = document.getElementById("image-preview");
+    const resolutionSelect = document.getElementById("resolution");
+    const asciiImageContainer = document.getElementById("ascii-image-container");
+    const downloadLink = document.getElementById("download-ascii-image-link");
+    const downloadButton = document.getElementById("download-ascii-image-button");
+    const copyButton = document.getElementById("copy-button");
+    const outputImage = document.getElementById("ascii-output-image");
+    const loadingModal = document.getElementById("loading-modal");
+    
+    const gammaSlider = document.getElementById("gamma");
+    const contrastSlider = document.getElementById("contrast");
+    const brightnessSlider = document.getElementById("brightness");
+    
+    const gammaVal = document.getElementById("gamma-val");
+    const contrastVal = document.getElementById("contrast-val");
+    const brightnessVal = document.getElementById("brightness-val");
+    
+    [gammaSlider, contrastSlider, brightnessSlider].forEach(slider => {
+      slider.addEventListener("input", () => {
+        gammaVal.textContent = gammaSlider.value;
+        contrastVal.textContent = contrastSlider.value;
+        brightnessVal.textContent = brightnessSlider.value;
+      });
+    });
+    
+    const density = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXxznvrujft\\|)(1}{][?-_+~><iIl!;:,\"^`'.";
+    const charWidth = 8,
+      charHeight = 14;
+    
+    let imageDataURL;
+    let asciiText = "";
+    
+    imageUpload.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        imageDataURL = e.target.result;
+        imagePreview.src = imageDataURL;
+        imagePreview.style.display = "block";
+        generateButton.disabled = false;
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    generateButton.addEventListener("click", () => {
+      if (!imageDataURL) return;
+      
+      loadingModal.style.display = "flex";
+      
+      const img = new Image();
+      img.onload = () => {
+        const maxWidth = parseInt(resolutionSelect.value);
+        const gamma = parseFloat(gammaSlider.value);
+        const contrast = parseFloat(contrastSlider.value);
+        const brightness = parseFloat(brightnessSlider.value);
+        
+        const charAspectRatio = 0.55;
+        const aspectRatio = img.height / img.width;
+        const asciiWidth = Math.min(maxWidth, img.width);
+        const asciiHeight = Math.floor(asciiWidth * aspectRatio * charAspectRatio);
+        
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = asciiWidth;
+        tempCanvas.height = asciiHeight;
+        const ctx = tempCanvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, asciiWidth, asciiHeight);
+        const imageData = ctx.getImageData(0, 0, asciiWidth, asciiHeight).data;
+        
+        // Aqui criamos o canvas que será usado para renderizar a arte final
+        const canvas = document.createElement("canvas");
+        canvas.width = asciiWidth * charWidth;
+        canvas.height = asciiHeight * charHeight;
+        const ctx2 = canvas.getContext("2d");
+        ctx2.fillStyle = "white";
+        ctx2.fillRect(0, 0, canvas.width, canvas.height);
+        ctx2.font = `${charHeight}px monospace`;
+        ctx2.fillStyle = "black";
+        
+        asciiText = "";
+        
+        const tileSize = 64;
+        const xTiles = Math.ceil(asciiWidth / tileSize);
+        const yTiles = Math.ceil(asciiHeight / tileSize);
+        
+        for (let ty = 0; ty < yTiles; ty++) {
+          for (let tx = 0; tx < xTiles; tx++) {
+            const xStart = tx * tileSize;
+            const yStart = ty * tileSize;
+            const xEnd = Math.min(xStart + tileSize, asciiWidth);
+            const yEnd = Math.min(yStart + tileSize, asciiHeight);
+            
+            for (let y = yStart; y < yEnd; y++) {
+              let line = "";
+              for (let x = xStart; x < xEnd; x++) {
+                const index = (y * asciiWidth + x) * 4;
+                let r = imageData[index] / 255;
+                let g = imageData[index + 1] / 255;
+                let b = imageData[index + 2] / 255;
+                
+                r = Math.pow(r, gamma) * brightness;
+                g = Math.pow(g, gamma) * brightness;
+                b = Math.pow(b, gamma) * brightness;
+                
+                r = ((r - 0.5) * contrast) + 0.5;
+                g = ((g - 0.5) * contrast) + 0.5;
+                b = ((b - 0.5) * contrast) + 0.5;
+                
+                r = Math.min(1, Math.max(0, r));
+                g = Math.min(1, Math.max(0, g));
+                b = Math.min(1, Math.max(0, b));
+                
+                let avg = (r + g + b) / 3;
+                
+                const charIndex = Math.floor(avg * (density.length - 1));
+                const char = density[charIndex];
+                ctx2.fillText(char, x * charWidth, y * charHeight);
+                line += char;
+              }
+              asciiText += line + "\n";
+            }
+          }
+        }
+        
+        const imageDataUrl = canvas.toDataURL("image/jpeg");
+        outputImage.src = imageDataUrl;
+        asciiImageContainer.style.display = "block";
+        downloadLink.href = imageDataUrl;
+        downloadButton.disabled = false;
+        copyButton.disabled = false;
+        loadingModal.style.display = "none";
+      };
+      
+      img.src = imageDataURL;
+    });
+    
+    copyButton.addEventListener("click", () => {
+      if (!asciiText) return;
+      navigator.clipboard.writeText(asciiText).then(() => {
+        alert("Texto copiado para a área de transferência.");
+      });
+    });
+    
+    // Alternância entre modos
+    document.getElementById("mode-image").addEventListener("click", () => {
+      document.getElementById("section-image").classList.remove("hidden");
+      document.getElementById("section-video").classList.add("hidden");
+    });
+    
+    document.getElementById("mode-video").addEventListener("click", () => {
+      document.getElementById("section-image").classList.add("hidden");
+      document.getElementById("section-video").classList.remove("hidden");
+    });
+    
+    let webcamRunning = false;
+    
+    document.getElementById("start-webcam").addEventListener("click", async () => {
+      if (webcamRunning) return; // Evita múltiplas execuções
+      
+      const video = document.createElement("video");
+      video.autoplay = true;
+      video.playsInline = true;
+      video.muted = true; // evita áudio
+      
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        
+        await video.play();
+        
+        webcamRunning = true;
+        
+        const canvas = document.getElementById("ascii-video-canvas");
+        const ctx = canvas.getContext("2d");
+        
+        const asciiCanvas = document.createElement("canvas");
+        asciiCanvas.width = 160;
+        asciiCanvas.height = 90;
+        const asciiCtx = asciiCanvas.getContext("2d");
+        
+        function renderFrame() {
+          if (!webcamRunning) return;
+          
+          asciiCtx.drawImage(video, 0, 0, asciiCanvas.width, asciiCanvas.height);
+          const frame = asciiCtx.getImageData(0, 0, asciiCanvas.width, asciiCanvas.height).data;
+          
+          canvas.width = asciiCanvas.width * charWidth;
+          canvas.height = asciiCanvas.height * charHeight;
+          ctx.fillStyle = "white";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.font = `${charHeight}px monospace`;
+          ctx.fillStyle = "black";
+          
+          for (let y = 0; y < asciiCanvas.height; y++) {
+            for (let x = 0; x < asciiCanvas.width; x++) {
+              const i = (y * asciiCanvas.width + x) * 4;
+              const r = frame[i],
+                g = frame[i + 1],
+                b = frame[i + 2],
+                a = frame[i + 3];
+              const lum = getLuminanceWithAlpha(r, g, b, a);
+              const char = density[Math.floor(lum * (density.length - 1))];
+              ctx.fillText(char, x * charWidth, y * charHeight);
+            }
+          }
+          
+          requestAnimationFrame(renderFrame);
+        }
+        
+        renderFrame();
+      } catch (err) {
+        console.error("Erro ao acessar webcam:", err);
+        alert("Não foi possível acessar a webcam.");
+      }
+    });
+  </script>
+</body>
+
+</html>
